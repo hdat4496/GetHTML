@@ -112,9 +112,9 @@ function getData(urls) {
     $.get(urls,function (response) {
         var json = $.parseHTML(response);
         var n=0;
-        var day = urls.url.substr(-7,2);
-        var month = urls.url.substr(-9,2);
-        var year = urls.url.substr(-13,4);
+        var day = urls.substr(-7,2);
+        var month = urls.substr(-9,2);
+        var year = urls.substr(-13,4);
         var date = day +"/"+month+"/"+year;
         json.forEach(function(element) {
             if (element.id=="container") {
@@ -128,6 +128,21 @@ function getData(urls) {
                         }
                         var title = elemen1.childNodes[5].childNodes[1].childNodes[3].childNodes[1].childNodes[1].textContent;//title
                         var artist = elemen1.childNodes[5].childNodes[1].childNodes[3].childNodes[3].childNodes[1].textContent;//artist
+                        if (artist.includes(" FT ")){
+                            artist= artist.replace(" FT ", " OR ");
+                        }
+
+                        if (artist.includes(" / ")){
+                            artist= artist.replace(" / ", " OR ");
+                        }
+
+                        if (artist.includes("/")){
+                            artist= artist.replace("/", " OR ");
+                        }
+
+                        if (artist.includes(" & ")){
+                            artist= artist.replace(" & ", " OR ");
+                        }
                         var song =  new Song;
                         song.title = title;
                         song.position=posotion;
@@ -218,7 +233,37 @@ function exportFile(data, filename) {
 }
 
 $(document).ready(function () {
-    $("#csv-file").change(handleFileSelect);
+    // $("#csv-file").change(handleFileSelect);
+    $( "#submit" ).click(function() {
+        var from_date = $( "#from-date" ).val();
+        var to_date = $( "#to-date" ).val();
+        var url_global='http://www.officialcharts.com/charts/r-and-b-singles-chart/';
+        // var date = year+month+day;
+        // from_date = from_date.Date("yyyy-MM-dd");
+        var date_from_new = new Date(from_date);
+        var date_to_new = new Date(to_date);
+
+        while (date_from_new<=date_to_new){
+            var day = date_from_new.getDate();
+            var month = date_from_new.getMonth() +1 ;
+            console.log(date_from_new);
+            console.log(month);
+            var year = date_from_new.getFullYear();
+            var day_str = day.toString();
+            var month_str = month.toString();
+            var year_str = year.toString();
+            if (day<10){
+                day_str = '0'+day_str;
+            }
+            if(month<10){
+                month_str = '0'+ month_str;
+            }
+            date_from_new.setDate(day+7);
+            var date_str = year_str+ month_str+ day_str;
+            var url='http://www.officialcharts.com/charts/r-and-b-singles-chart/'+date_str+'/114/';
+            getData(url);
+        }
+    });
 });
 
 
