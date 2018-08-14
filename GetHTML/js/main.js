@@ -5,7 +5,10 @@ function Song(date, title, artist, position) {
     this.position = position;
 }
 var songs = [];
+var songs_offical = {};
 var check_done = 0;
+var number_of_url = 0;
+var titles = [];
 //Test
 // $.ajaxPrefilter( function (options) {
 //     if (options.crossDomain && jQuery.support.cors) {
@@ -54,14 +57,7 @@ var check_done = 0;
 //     })
 //
 // });
-function getData(urls) {
-    $.ajaxPrefilter( function (options) {
-        if (options.crossDomain && jQuery.support.cors) {
-            var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
-            options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
-            //options.url = "http://cors.corsproxy.io/url=" + options.url;
-        }
-    });
+function getData(urls, date_str) {
     // Nhaccuatui.com
     // $.get(url,function (response) {
     //         var json = $.parseHTML(response);
@@ -112,9 +108,9 @@ function getData(urls) {
     $.get(urls,function (response) {
         var json = $.parseHTML(response);
         var n=0;
-        var day = urls.substr(-7,2);
-        var month = urls.substr(-9,2);
-        var year = urls.substr(-13,4);
+        var day = date_str.substr(6,2);
+        var month = date_str.substr(4,2);
+        var year = date_str.substr(0,4);
         var date = day +"/"+month+"/"+year;
         json.forEach(function(element) {
             if (element.id=="container") {
@@ -143,18 +139,54 @@ function getData(urls) {
                         if (artist.includes(" & ")){
                             artist= artist.replace(" & ", " OR ");
                         }
-                        var song =  new Song;
-                        song.title = title;
-                        song.position=posotion;
-                        song.artist=artist;
-                        song.date = date;
-                        songs.push(song);
+
+                        if (artist.includes(" FEATURING ")){
+                            artist= artist.replace(" FEATURING ", " OR ");
+                        }
+
+                        if (title.includes("(")){
+                            var pos = title.indexOf("(");
+                            var title_re = title.substr(pos);
+                            title.replace(title_re,'');
+                        }
+
+                        var song =  new Song(date,title,artist,posotion);
+                        if(!titles.includes(song.title))
+                        {
+                            titles.push(title);
+                            // songs.push(song);
+                            songs_offical[title]=song;
+                        }
+                        else {
+                            // songs.forEach(function (song_sub) {
+                            //     if(title===song_sub.title &&  artist===song_sub.artist){
+                            //         if(parseInt(posotion) < parseInt(song_sub.position)){
+                            //             song_sub.position=posotion;
+                            //             song_sub.date=date;
+                            //         }
+                            //     }
+                            //
+                            // })
+                            if(parseInt(posotion) < parseInt(songs_offical[title].position)){
+                                songs_offical[title].position=posotion;
+                                songs_offical[title].date=date;
+
+
+                         }
+
+                        }
 
                     }
-
                 });
+                console.log("Processing............");
                 check_done +=1;
-                if (check_done == 2) {
+                if (check_done === number_of_url) {
+
+                    console.log(songs_offical);
+                    for(var i in songs_offical) {
+                        songs.push(songs_offical[i]);
+                    }
+
                     var result = CSV(songs);
                     exportFile(result, "DataInput.csv");
                     console.log("----------DONE------------");
@@ -237,17 +269,24 @@ $(document).ready(function () {
     $( "#submit" ).click(function() {
         var from_date = $( "#from-date" ).val();
         var to_date = $( "#to-date" ).val();
+        var first_url = $( "#first-url" ).val();
+        var end_url = $( "#end-url" ).val();
+
         var url_global='http://www.officialcharts.com/charts/r-and-b-singles-chart/';
         // var date = year+month+day;
         // from_date = from_date.Date("yyyy-MM-dd");
         var date_from_new = new Date(from_date);
         var date_to_new = new Date(to_date);
-
+        $.ajaxPrefilter( function (options) {
+            if (options.crossDomain && jQuery.support.cors) {
+                var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
+                options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
+                //options.url = "http://cors.corsproxy.io/url=" + options.url;
+            }
+        });
         while (date_from_new<=date_to_new){
             var day = date_from_new.getDate();
             var month = date_from_new.getMonth() +1 ;
-            console.log(date_from_new);
-            console.log(month);
             var year = date_from_new.getFullYear();
             var day_str = day.toString();
             var month_str = month.toString();
@@ -260,8 +299,11 @@ $(document).ready(function () {
             }
             date_from_new.setDate(day+7);
             var date_str = year_str+ month_str+ day_str;
-            var url='http://www.officialcharts.com/charts/r-and-b-singles-chart/'+date_str+'/114/';
-            getData(url);
+            var url='http://www.officialcharts.com/charts/'+first_url+'/'+date_str+'/'+end_url+'/';
+
+            console.log("Week!");
+            number_of_url +=1;
+            getData(url, date_str);
         }
     });
 });
