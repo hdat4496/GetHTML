@@ -9,7 +9,7 @@ var songs_offical = {};
 var check_done = 0;
 var number_of_url = 0;
 var titles = [];
-//Test
+//Test for another website
 // $.ajaxPrefilter( function (options) {
 //     if (options.crossDomain && jQuery.support.cors) {
 //         var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
@@ -40,7 +40,6 @@ var titles = [];
 //                     song.position=posotion;
 //                     song.artist=artist;
 //                     songs.push(song);
-//
 //                 }
 //
 //             });
@@ -101,9 +100,6 @@ function getData(urls, date_str) {
     //             }})
     //
     //     });
-
-
-
     //officialcharts.com
     $.get(urls,function (response) {
         var json = $.parseHTML(response);
@@ -111,7 +107,7 @@ function getData(urls, date_str) {
         var day = date_str.substr(6,2);
         var month = date_str.substr(4,2);
         var year = date_str.substr(0,4);
-        var date = day +"/"+month+"/"+year;
+        var date_date =  new Date(year,month,day);
         json.forEach(function(element) {
             if (element.id=="container") {
                 var a=element.childNodes[7].childNodes[9].childNodes[1].childNodes[3].childNodes[3].childNodes[1].childNodes[1].childNodes;
@@ -124,33 +120,33 @@ function getData(urls, date_str) {
                         }
                         var title = elemen1.childNodes[5].childNodes[1].childNodes[3].childNodes[1].childNodes[1].textContent;//title
                         var artist = elemen1.childNodes[5].childNodes[1].childNodes[3].childNodes[3].childNodes[1].textContent;//artist
-                        if (artist.includes(" FT ")){
+                        while(artist.includes(" FT ")){
                             artist= artist.replace(" FT ", " OR ");
                         }
 
-                        if (artist.includes(" / ")){
-                            artist= artist.replace(" / ", " OR ");
+                        while(artist.includes(" / ")){
+                            artist = artist.replace(" / ", " OR ");
                         }
 
-                        if (artist.includes("/")){
-                            artist= artist.replace("/", " OR ");
+                        while(artist.includes("/")){
+                            artist = artist.replace("/", " OR ");
                         }
 
-                        if (artist.includes(" & ")){
-                            artist= artist.replace(" & ", " OR ");
+                        while(artist.includes(" & ")){
+                            artist = artist.replace(" & ", " OR ");
                         }
 
-                        if (artist.includes(" FEATURING ")){
-                            artist= artist.replace(" FEATURING ", " OR ");
+                        while(artist.includes(" FEATURING ")){
+                            artist = artist.replace(" FEATURING ", " OR ");
                         }
 
                         if (title.includes("(")){
                             var pos = title.indexOf("(");
                             var title_re = title.substr(pos);
-                            title.replace(title_re,'');
+                            title = title.replace(title_re," ");
                         }
 
-                        var song =  new Song(date,title,artist,posotion);
+                        var song =  new Song(date_date,title.trim(),artist.trim(),posotion);
                         if(!titles.includes(song.title))
                         {
                             titles.push(title);
@@ -158,20 +154,9 @@ function getData(urls, date_str) {
                             songs_offical[title]=song;
                         }
                         else {
-                            // songs.forEach(function (song_sub) {
-                            //     if(title===song_sub.title &&  artist===song_sub.artist){
-                            //         if(parseInt(posotion) < parseInt(song_sub.position)){
-                            //             song_sub.position=posotion;
-                            //             song_sub.date=date;
-                            //         }
-                            //     }
-                            //
-                            // })
                             if(parseInt(posotion) < parseInt(songs_offical[title].position)){
                                 songs_offical[title].position=posotion;
-                                songs_offical[title].date=date;
-
-
+                                songs_offical[title].date=date_date;
                          }
 
                         }
@@ -181,19 +166,19 @@ function getData(urls, date_str) {
                 console.log("Processing............");
                 check_done +=1;
                 if (check_done === number_of_url) {
-
-                    console.log(songs_offical);
                     for(var i in songs_offical) {
                         songs.push(songs_offical[i]);
                     }
+                    songs.sort(function (song1, song2) {
+                        return song1.date - song2.date;
+                    });
+
+
 
                     var result = CSV(songs);
                     exportFile(result, "DataInput.csv");
                     console.log("----------DONE------------");
                 }
-
-
-
             }
         })
 
@@ -217,6 +202,8 @@ function handleFileSelect(evt) {
 function CSV(songs) {
     var empConnects = [];
     songs.forEach(function (song) {
+        console.log(typeof  song.date);
+
         empConnects.push([
             "\"" + song.date + "\"",
             "\"" + song.title + "\"",
@@ -292,10 +279,10 @@ $(document).ready(function () {
             var month_str = month.toString();
             var year_str = year.toString();
             if (day<10){
-                day_str = '0'+day_str;
+                day_str = "0"+day_str;
             }
             if(month<10){
-                month_str = '0'+ month_str;
+                month_str = "0"+ month_str;
             }
             date_from_new.setDate(day+7);
             var date_str = year_str+ month_str+ day_str;
